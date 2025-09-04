@@ -7,6 +7,7 @@ def format_list(text: str) -> str:
     text = re.sub(r'(?<=\n)- ', '\n- ', text)  # Bullets (basic)
     return text
 
+API_URI = st.secrets.get("aws_api_uri", "local_api_uri")
 
 st.set_page_config(page_title="Your AI Medical Assistant", page_icon="🧠")
 st.title("🧠 Your AI Medical Assistant")
@@ -14,8 +15,13 @@ st.title("🧠 Your AI Medical Assistant")
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! How can I help you today?"}
+        {"role": "assistant", "content": """Hello! How can I help you today?
+    If you are feeling unwell, please describe your symptoms.
+    I can also assist you with health advice."""}
     ]
+if "session_id" not in st.session_state:
+    # Generate a unique session ID per user
+    st.session_state.session_id = "user_session_1"  # or generate dynamically
 
 # Display chat history
 for msg in st.session_state.messages:
@@ -29,15 +35,6 @@ if prompt := st.chat_input("Type your message..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Format full conversation as prompt
-    formatted_prompt = ""
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            formatted_prompt += f"### Human: {msg['content']}\n"
-        else:
-            formatted_prompt += f"### Assistant: {msg['content']}\n"
-    formatted_prompt += "### Assistant:"  # cue for the model
-
     # Display assistant message placeholder
     with st.chat_message("assistant"):
         msg_placeholder = st.empty()
@@ -46,8 +43,11 @@ if prompt := st.chat_input("Type your message..."):
     try:
         # Call FastAPI backend
         response = requests.post(
-            "http://localhost:8001/prompt_model",
-            json={"prompt": formatted_prompt}
+            f"{API_URI}/prompt_model",
+            json={
+                "prompt": prompt,  # only send the latest user input
+                "session_id": st.session_state.session_id
+            }
         )
 
         if response.status_code == 200:

@@ -14,8 +14,8 @@ if st.button("Submit"):
             try:
                 # Send to API
                 response = requests.post(
-                    "http://localhost:8000/prompt_model",
-                    json={"prompt": prompt}
+                    "http://localhost:8001/prompt_model",
+                    json={"prompt": prompt.strip()}
                 )
                 if response.status_code == 200:
                     data = response.json()
